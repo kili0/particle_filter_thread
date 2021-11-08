@@ -54,6 +54,7 @@ class ParticleFilter(object):
     """
 
     def resampling2(self, weights):
+        # re_start = time.time()
         """　計算量の少ない層化サンプリング　"""
         idx = np.asanyarray(range(self.n_particle))
         u0 = rd.uniform(0, 1/self.n_particle)
@@ -70,6 +71,8 @@ class ParticleFilter(object):
                 count += 1
         k = future.result()
         """
+        # re_end = time.time()
+        # print("resampling: %.3f seconds" % (re_end - re_start))
         return k
 
     def simulate(self, seed=71):
@@ -94,7 +97,7 @@ class ParticleFilter(object):
         l = np.zeros(T) # 時刻毎の尤度
 
         with ThreadPoolExecutor(max_workers=max_thread_num, thread_name_prefix="thread") as executor:
-            """
+            # """
             for t in range(T):
                 # cal_start = time.time()
                 for i in range(max_thread_num):
@@ -107,19 +110,19 @@ class ParticleFilter(object):
                 # Resampling
                 k = self.resampling2(w_normed[t]) # リサンプルで取得した粒子の添字（層化サンプリング）
                 x_resampled[t+1] = x[t+1, k]
+            # """
+
             """
-
             for t in range(T):
-                time_stamp = np.asanyarray([t for i in range(T)])
-                future = executor.map(self.calculation2, range(self.n_particle), time_stamp, x[1:], x_resampled, w)
+                cal_start = time.time()
+                time_stamp = np.asanyarray([t for i in range(self.n_particle)])
+                future = executor.map(self.calculation2, range(self.n_particle), time_stamp, x[t+1], x_resampled[t], w[t])
                 result = np.asanyarray(list(future))
-                # print(result, "\n")
 
-                print("x: ", x[t])
-                print("result_x: ", result[:, 0])
-                for i in range(self.n_particle):
-                    x[t+1, i] = result[i, 0]
-                    w[t, i] = result[i, 1]
+                # print("x[t]: ", x[t])
+                # print("result_x: ", result[:, 0])
+                x[t+1, :] = result[:, 0]
+                w[t, :] = result[:, 1]
 
                 w_normed[t] = w[t]/np.sum(w[t]) # 規格化
                 l[t] = np.log(np.sum(w[t])) # 各時刻対数尤度
@@ -127,6 +130,9 @@ class ParticleFilter(object):
                 # Resampling
                 k = self.resampling2(w_normed[t]) # リサンプルで取得した粒子の添字（層化サンプリング）
                 x_resampled[t+1] = x[t+1, k]
+                cal_end = time.time()
+                print("calculation: %.3f seconds" % (cal_end - cal_start))
+            """
 
 
         # 全体の対数尤度
@@ -153,9 +159,9 @@ class ParticleFilter(object):
 
     def calculation2(self, i, t, x, x_resampled, w):
         v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
-        x[i] = x_resampled[i] + v # システムノイズの付加
-        w[i] = self.norm_likelihood(self.y[t], x[i], self.sigma_2) # y[t]に対する各粒子の尤度
-        return x[i], w[i]
+        x = x_resampled + v # システムノイズの付加
+        w = self.norm_likelihood(self.y[t], x, self.sigma_2) # y[t]に対する各粒子の尤度
+        return x, w
 
     def get_filtered_value(self):
         """
@@ -171,7 +177,7 @@ a = -2
 b = -1
 
 # n_particle = 10**3
-n_particle = 100
+n_particle = 10**3 * 5
 sigma_2 = 2**a
 alpha_2 = 10**b
 

@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 # import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from logging import StreamHandler, Formatter, INFO, getLogger
-import time
 
 def init_logger():
     handler = StreamHandler()

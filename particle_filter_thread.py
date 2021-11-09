@@ -35,6 +35,9 @@ class ParticleFilter(object):
         self.alpha_2 = alpha_2
         self.log_likelihood = -np.inf
 
+        self.time_count = time_count
+        self.resampling_time = resampling_time
+
     def norm_likelihood(self, y, x, s2):
         return (np.sqrt(2*np.pi*s2))**(-1) * np.exp(-(y-x)**2/(2*s2))
 
@@ -44,16 +47,16 @@ class ParticleFilter(object):
         k = np.max(idx[w_cumsum < u])
         return k+1
 
-    """
+    # """
     def F_inv2(self, k, i, w_cumsum, idx, u):
         if np.any(w_cumsum < u) == False:
             return 0
         k[i] = np.max( idx[w_cumsum < u] ) + 1
         return k
-    """
+    # """
 
     def resampling2(self, weights):
-        # re_start = time.time()
+        re_start = time.time()
         """　計算量の少ない層化サンプリング　"""
         idx = np.asanyarray(range(self.n_particle))
         u0 = rd.uniform(0, 1/self.n_particle)
@@ -61,6 +64,7 @@ class ParticleFilter(object):
         w_cumsum = np.cumsum(weights)
         """ ↓ 約 0.1s * T だけの時間がかかる """
         k = np.asanyarray([self.F_inv(w_cumsum, idx, val) for val in u])
+
         """ ↓ 約 0.2s * T だけの時間がかかる
         k = np.asanyarray([0 for i in u])
         with ThreadPoolExecutor(max_workers=max_thread_num, thread_name_prefix="k_thread") as executor:
@@ -70,7 +74,9 @@ class ParticleFilter(object):
                 count += 1
         k = future.result()
         """
-        # re_end = time.time()
+        re_end = time.time()
+        self.resampling_time[self.time_count] = re_end - re_start
+        self.time_count += 1
         # print("resampling: %.3f seconds" % (re_end - re_start))
         return k
 
@@ -101,8 +107,11 @@ class ParticleFilter(object):
                 # cal_start = time.time()
                 for i in range(max_thread_num):
                     future = executor.submit(self.calculation, i, t, x, x_resampled, w)
-                    x, w = future.result()
 
+                # for i in range(self.n_particle):
+                #     future = executor.submit(self.calculation3, i, t, x, x_resampled, w)
+
+                x, w = future.result()
                 w_normed[t] = w[t]/np.sum(w[t]) # 規格化
                 l[t] = np.log(np.sum(w[t])) # 各時刻対数尤度
 
@@ -133,7 +142,6 @@ class ParticleFilter(object):
                 print("calculation: %.3f seconds" % (cal_end - cal_start))
             """
 
-
         # 全体の対数尤度
         self.log_likelihood = np.sum(l) - T*np.log(n_particle)
 
@@ -149,10 +157,10 @@ class ParticleFilter(object):
         end = int(width * (th_num + 1) -1)
         # getLogger().info("%s start", t)
         for i in range(start, end):
-          # 1階差分トレンドを適用
-          v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
-          x[t+1, i] = x_resampled[t, i] + v # システムノイズの付加
-          w[t, i] = self.norm_likelihood(self.y[t], x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
+            # 1階差分トレンドを適用
+            v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
+            x[t+1, i] = x_resampled[t, i] + v # システムノイズの付加
+            w[t, i] = self.norm_likelihood(self.y[t], x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
         # getLogger().info("%s end", t)
         return x, w
 
@@ -160,6 +168,12 @@ class ParticleFilter(object):
         v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
         x = x_resampled + v # システムノイズの付加
         w = self.norm_likelihood(self.y[t], x, self.sigma_2) # y[t]に対する各粒子の尤度
+        return x, w
+
+    def calculation3(self, i, t, x, x_resampled, w):
+        v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
+        x[t+1, i] = x_resampled[t, i] + v # システムノイズの付加
+        w[t, i] = self.norm_likelihood(self.y[t], x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
         return x, w
 
     def get_filtered_value(self):
@@ -175,13 +189,18 @@ class ParticleFilter(object):
 a = -2
 b = -1
 
-# n_particle = 10**3
 n_particle = 10**3 * 5
+# n_particle = 10**3 * 5
 sigma_2 = 2**a
 alpha_2 = 10**b
 
-max_thread_num = 1
+max_thread_num = 4
 width = int(n_particle / max_thread_num)
+
+""" for debug """
+time_len = 100
+resampling_time = np.zeros(time_len)
+time_count = 0
 
 init_logger()
 # getLogger().info("main start")
@@ -191,6 +210,11 @@ start = time.time()
 pf.simulate()
 stop = time.time()
 print('%.3f seconds' % (stop - start))
+
+print("resampling time: max = %.3f seconds" % np.max(resampling_time))
+print("resampling time: min = %.3f seconds" % np.min(resampling_time))
+print("resampling time: mid = %.3f seconds" % (np.sum(resampling_time)/time_len))
+
 # getLogger().info("main end")
 
 # pf.draw_graph()

@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import numpy.random as rd
 import pandas as pd
+
 import time
-
-import matplotlib
-from matplotlib import font_manager
-import matplotlib.pyplot as plt
-
-# import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from logging import StreamHandler, Formatter, INFO, getLogger
-import functools
+
+df = pd.read_csv("http://daweb.ism.ac.jp/yosoku/materials/PF-example-data.txt", header=None)
+df.columns = ["data"]
 
 def init_logger():
     handler = StreamHandler()
@@ -20,13 +16,6 @@ def init_logger():
     logger = getLogger()
     logger.addHandler(handler)
     logger.setLevel(INFO)
-
-df = pd.read_csv("http://daweb.ism.ac.jp/yosoku/materials/PF-example-data.txt", header=None)
-
-df.columns = ["data"]
-
-df.plot(figsize=(12,4))
-plt.title("Test Data")
 
 class ParticleFilter(object):
     def __init__(self, y, n_particle, sigma_2, alpha_2):
@@ -49,14 +38,6 @@ class ParticleFilter(object):
         k = np.max(idx[w_cumsum < u])
         return k+1
 
-    # """
-    def F_inv2(self, k, i, w_cumsum, idx, u):
-        if np.any(w_cumsum < u) == False:
-            return 0
-        k[i] = np.max( idx[w_cumsum < u] ) + 1
-        return k
-    # """
-
     def resampling2(self, weights):
         re_start = time.time()
         """　計算量の少ない層化サンプリング　"""
@@ -64,20 +45,17 @@ class ParticleFilter(object):
         u0 = rd.uniform(0, 1/self.n_particle)
         u = [1/self.n_particle*i + u0 for i in range(self.n_particle)]
         w_cumsum = np.cumsum(weights)
-        """ ↓ 約 0.1s * T だけの時間がかかる """
         k = np.asanyarray([self.F_inv(w_cumsum, idx, val) for val in u])
         re_end = time.time()
         self.resampling_time[self.time_count] = re_end - re_start
         self.time_count += 1
-        # print("resampling: %.3f seconds" % (re_end - re_start))
         return k
 
     def simulate(self, seed=71):
         rd.seed(seed)
 
         # 時系列データ数
-        # T = len(self.y)
-        T = 1
+        T = len(self.y)
 
         # 潜在変数
         x = np.zeros((T+1, self.n_particle))
@@ -94,13 +72,20 @@ class ParticleFilter(object):
 
         l = np.zeros(T) # 時刻毎の尤度
 
+        """
+        self.x = x
+        self.x_resampled = x_resampled
+        self.w = w
+        self.w_normed = w_normed
+        self.l = l
+
         with ThreadPoolExecutor(max_workers=max_thread_num, thread_name_prefix="thread") as executor:
             for t in range(T):
                 cal_start = time.time()
                 for i in range(max_thread_num):
-                    future = executor.submit(self.calculation, i, t, x, x_resampled, w)
+                    future = executor.submit(self.calculate, t, i)
 
-                x, w = future.result()
+                flag = future.result()
                 w_normed[t] = w[t]/np.sum(w[t]) # 規格化
                 l[t] = np.log(np.sum(w[t])) # 各時刻対数尤度
                 cal_end = time.time()
@@ -109,6 +94,21 @@ class ParticleFilter(object):
                 # Resampling
                 k = self.resampling2(w_normed[t]) # リサンプルで取得した粒子の添字（層化サンプリング）
                 x_resampled[t+1] = x[t+1, k]
+        """
+        for t in range(T):
+            cal_start = time.time()
+            for i in range(self.n_particle):
+                v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
+                x[t+1, i] = x_resampled[t, i] + v # システムノイズの付加
+                w[t, i] = self.norm_likelihood(self.y[t], x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
+            w_normed[t] = w[t]/np.sum(w[t]) # 規格化
+            l[t] = np.log(np.sum(w[t])) # 各時刻対数尤度
+            cal_end = time.time()
+            self.cal_time[self.time_count] = cal_end - cal_start
+
+            # Resampling
+            k = self.resampling2(w_normed[t]) # リサンプルで取得した粒子の添字（層化サンプリング）
+            x_resampled[t+1] = x[t+1, k]
 
         # 全体の対数尤度
         self.log_likelihood = np.sum(l) - T*np.log(n_particle)
@@ -119,25 +119,18 @@ class ParticleFilter(object):
         self.w_normed = w_normed
         self.l = l
 
-    def calculation(self, th_num, t, x, x_resampled, w):
+    def calculate(self, t, th_num):
         start = int(width * th_num)
         end = int(width * (th_num + 1) -1)
-        # getLogger().info("%s start", t)
         for i in range(start, end):
             # 1階差分トレンドを適用
             v = rd.normal(0, np.sqrt(self.alpha_2*self.sigma_2)) # System Noise
-            x[t+1, i] = x_resampled[t, i] + v # システムノイズの付加
-            w[t, i] = self.norm_likelihood(self.y[t], x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
-
-        # for i in range(int(50000/4)):
-        #     num = 100*100 / (i+1)
-        # getLogger().info("%s end", t)
-        return x, w
+            self.x[t+1, i] = self.x_resampled[t, i] + v # システムノイズの付加
+            self.w[t, i] = self.norm_likelihood(self.y[t], self.x[t+1, i], self.sigma_2) # y[t]に対する各粒子の尤度
+        return 1
 
     def get_filtered_value(self):
-        """
-        尤度の重みで加重平均した値でフィルタリングされた値を算出
-        """
+        """ 尤度の重みで加重平均した値でフィルタリングされた値を算出 """
         return np.diag(np.dot(self.w_normed, self.x[1:].T))
 
 
@@ -147,7 +140,7 @@ class ParticleFilter(object):
 a = -2
 b = -1
 
-n_particle = 10**5 * 5
+n_particle = 10**3 * 5
 # n_particle = 10**3 * 5
 sigma_2 = 2**a
 alpha_2 = 10**b
@@ -176,5 +169,3 @@ print("resampling time: mid = %.3f seconds" % (np.sum(resampling_time)/time_len)
 print("calculation time: mid = %.3f seconds" % (np.sum(cal_time)/time_len))
 
 # getLogger().info("main end")
-
-# pf.draw_graph()

@@ -75,8 +75,8 @@ public:
     normal_distribution<> dist(0.0, sqrt(alpha_2*sigma_2));
     v = dist(engine);
 
-    x[t+1, i] = x_resampled[t, i] + v;
-    w[t, i] = norm_likelihood(y[t], x[t+1, i], sigma_2);
+    x[t+1][i] = x_resampled[t][i] + v;
+    w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     return 1;
   }
 
@@ -92,7 +92,7 @@ public:
   }
 };
 
-int main(char *argv[])
+int main(int argc, char *argv[])
 {
   int n_particle = pow(10, atoi(argv[1]));
   int max_thread_num = atoi(argv[2]);
@@ -105,7 +105,7 @@ int main(char *argv[])
   pf.parallel();
 
   std::cout << "calculation time: "
-            << accumulate(cal_time, cal_time.size(), 0.0)
+            << accumulate(cal_time.begin(), cal_time.end(), 0.0)
             << std::endl;
 
 }

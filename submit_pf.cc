@@ -6,10 +6,12 @@
 #include <time.h>
 #include <pthread.h>
 
+#define a -2
+#define b -1
+#define T  1
+
 using namespace std;
 
-int a = -2;
-int b = -1;
 double sigma_2 = pow(2, a);
 double alpha_2 = pow(10, b);
 int time_count = 0;
@@ -29,7 +31,6 @@ private:
   vector< vector<double> > w;
   vector< vector<double> > w_normed;
   vector<double> l;
-  int T;
   int time_count;
   vector<double> cal_time;
 
@@ -40,7 +41,7 @@ public:
     sigma_2 = s2;
     alpha_2 = a2;
 
-    T = 1;
+    // T = 1;
     vector< vector<double> > x(T+1, vector<double>(n_particle, 0));
     vector< vector<double> > x_resampled(T+1, vector<double>(n_particle, 0));
 
@@ -59,11 +60,18 @@ public:
     vector< vector<double> > w_normed(T, vector<double>(n_particle, 0));
     vector<double> l(T, 0);
     vector<double> cal_time(T);
+
+    this->x = x;
+    this->x_resampled = x_resampled;
+    this->y = y;
+    this->w = w;
+    this->w_normed = w_normed;
+    this->l = l;
+    this->cal_time = cal_time;
   }
 
   double norm_likelihood(double y, double x, double s2)
   {
-    std::cout << "debug" << std::endl;
     double result;
     result = pow(sqrt(2*M_PI*s2), -1)  * exp(pow(-(y-x), 2) / (2*s2));
     return result;
@@ -75,7 +83,6 @@ public:
     normal_distribution<> dist2(0.0, sqrt(alpha_2*sigma_2));
     v = dist2(engine);
 
-    std::cout << "x[0][0]: " << x[0][0] << std::endl;
     x[t+1][i] = x_resampled[t][i] + v;
     w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     return 1;
@@ -86,8 +93,6 @@ public:
     clock_t start = clock();
 
     /* ---- single ---- */
-    std::cout << "T: " << T << std::endl;
-
     for(int t=0; t<T; t++)
     {
       for(int i=0; i<n_particle; i++)
@@ -97,14 +102,15 @@ public:
     }
 
     clock_t end = clock();
-    cal_time[time_count] = start - end;
+    cal_time[time_count] = end - start;
     time_count++;
   }
 
   double getCalTime()
   {
     double result;
-    result = accumulate(cal_time.begin(), cal_time.end(), 0.0);
+    // result = accumulate(cal_time.begin(), cal_time.end(), 0.0);
+    result = cal_time[0] / CLOCKS_PER_SEC;
     return result;
   }
 };
@@ -121,6 +127,7 @@ int main(int argc, char *argv[])
   pf.parallel();
 
   double result_time = pf.getCalTime();
+
   std::cout << "calculation time: "
             //<< std::accumulate(cal_time.begin(), cal_time.end(), 0.0)
             << result_time

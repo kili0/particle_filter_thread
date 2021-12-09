@@ -83,9 +83,8 @@ public:
     double v;
     normal_distribution<> dist2(0.0, sqrt(alpha_2*sigma_2));
     v = dist2(engine);
-
-    x[t+1][i] = x_resampled[t][i] + v;
-    w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
+    this->x[t+1][i] = x_resampled[t][i] + v;
+    this->w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     return 1;
   }
 
@@ -104,9 +103,9 @@ public:
       double wt_sum = accumulate(w[t].begin(), w[t].end(),  0.0);
       for(int j=0; j<n_particle; j++)
       {
-        w_normed[t][j] = w[t][j] / wt_sum;
+        this->w_normed[t][j] = w[t][j] / wt_sum;
       }
-      l[t] = log(wt_sum);
+      this->l[t] = log(wt_sum);
     }
 
     clock_t end = clock();

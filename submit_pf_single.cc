@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include <pthread.h>
+#include <numeric>
 
 #define a -2
 #define b -1
@@ -99,6 +100,13 @@ public:
       {
         task(i, t);
       }
+
+      double wt_sum = accumulate(w[t].begin(), w[t].end(),  0.0);
+      for(int j=0; j<n_particle; j++)
+      {
+        w_normed[t][j] = w[t][j] / wt_sum;
+      }
+      l[t] = log(wt_sum);
     }
 
     clock_t end = clock();
@@ -112,6 +120,52 @@ public:
     // result = accumulate(cal_time.begin(), cal_time.end(), 0.0);
     result = cal_time[0] / CLOCKS_PER_SEC;
     return result;
+  }
+
+  void printVectorX()
+  {
+    std::cout << "x: ";
+    for(int t=0; t<T+1; t++)
+    {
+      for(int i=0; i<n_particle; i++)
+      {
+        std::cout << x[t][i] << ", ";
+      }
+    }
+    std::cout << std::endl;
+
+    std::cout << "x_resampled: ";
+    for(int t=0; t<T+1; t++)
+    {
+      for(int i=0; i<n_particle; i++)
+      {
+        std::cout << x_resampled[t][i] << ", ";
+      }
+    }
+    std::cout << std::endl;
+  }
+
+  void printVectorW()
+  {
+    std::cout << "w: ";
+    for(int t=0; t<T; t++)
+    {
+      for(int i=0; i<n_particle; i++)
+      {
+        std::cout << w[t][i] << ", ";
+      }
+    }
+    std::cout << std::endl;
+
+    std::cout << "w_normed: ";
+    for(int t=0; t<T; t++)
+    {
+      for(int i=0; i<n_particle; i++)
+      {
+        std::cout << w_normed[t][i] << ", ";
+      }
+    }
+    std::cout << std::endl;
   }
 };
 
@@ -127,6 +181,9 @@ int main(int argc, char *argv[])
   pf.parallel();
 
   double result_time = pf.getCalTime();
+
+  pf.printVectorX();
+  pf.printVectorW();
 
   std::cout << "calculation time: "
             //<< std::accumulate(cal_time.begin(), cal_time.end(), 0.0)

@@ -19,7 +19,6 @@ int time_count = 0;
 
 #define MAX_THREAD_NUM 4
 pthread_t tid[MAX_THREAD_NUM];
-int pram[MAX_THREAD_NUM];
 
 random_device seed_gen;
 default_random_engine engine(seed_gen());
@@ -38,6 +37,8 @@ private:
   vector<double> l;
   int time_count;
   vector<double> cal_time;
+  int t_id;
+  pthread_mutex_t mutex;
 
 public:
   ParticleFilter(int np, double s2, double a2)
@@ -46,7 +47,6 @@ public:
     sigma_2 = s2;
     alpha_2 = a2;
 
-    // T = 1;
     vector< vector<double> > x(T+1, vector<double>(n_particle, 0));
     vector< vector<double> > x_resampled(T+1, vector<double>(n_particle, 0));
 
@@ -73,6 +73,7 @@ public:
     this->w_normed = w_normed;
     this->l = l;
     this->cal_time = cal_time;
+    this->t_id = 0;
   }
 
   double norm_likelihood(double y, double x, double s2)
@@ -82,13 +83,32 @@ public:
     return result;
   }
 
-  void* task(void* ts)
+  int count_tid()
   {
-    int width, istart, iend, *id;
-    std::cout << "id: " << *id << std::endl;
+    pthread_mutex_lock(&mutex);
+    int id;
+    if(t_id < MAX_THREAD_NUM)
+    {
+      id = this->t_id;
+      this->t_id += 1;
+    }
+    else
+    {
+      this->t_id = 0;
+      id = 0;
+    }
+    std::cout << "id: " << id << std::endl;
+    pthread_mutex_unlock(&mutex);
+    return id;
+  }
+
+  void task(void* ts)
+  {
+    int width, istart, iend, id;
+    id = count_tid();
     int *t = (int*)ts;
     width = n_particle / MAX_THREAD_NUM;
-    istart = *id * width;
+    istart = id * width;
     iend = istart + width;
     double v;
 
@@ -102,15 +122,21 @@ public:
     pthread_exit(NULL);
   }
 
+  static void* task_to_thread(void* t)
+  {
+    static_cast<ParticleFilter*>(t)->task(t);
+    return NULL;
+  }
+
   void parallel()
   {
     clock_t start = clock();
-
+    pthread_mutex_init(&mutex, NULL);
     /* ---- multi ---- */
     for(int t=0; t<T; t++){
       for(int i=0; i<MAX_THREAD_NUM; i++)
       {
-        pthread_create(&tid[i], NULL, task, (void*)&t);
+        pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)&t);
       }
       for(int i=0; i<MAX_THREAD_NUM; i++)
       {
@@ -126,8 +152,9 @@ public:
     }
 
     clock_t end = clock();
+    pthread_mutex_destroy(&mutex);
     cal_time[time_count] = end - start;
-    time_count++;
+    this->time_count++;
   }
 
   double getCalTime()
@@ -196,11 +223,10 @@ int main(int argc, char *argv[])
   ParticleFilter pf(n_particle, sigma_2, alpha_2);
   pf.parallel();
 
-  double result_time = pf.getCalTime();
-
   pf.printVectorX();
   pf.printVectorW();
 
+  double result_time = pf.getCalTime();
   std::cout << "calculation time: "
             //<< std::accumulate(cal_time.begin(), cal_time.end(), 0.0)
             << result_time

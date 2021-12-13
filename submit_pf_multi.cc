@@ -38,7 +38,7 @@ private:
   int time_count;
   vector<double> cal_time;
   int t_id;
-  pthread_mutex_t mutex;
+  // pthread_mutex_t mutex;
 
 public:
   ParticleFilter(int np, double s2, double a2)
@@ -85,7 +85,6 @@ public:
 
   int count_tid()
   {
-    pthread_mutex_lock(&mutex);
     int id;
     if(t_id < MAX_THREAD_NUM)
     {
@@ -98,7 +97,6 @@ public:
       id = 0;
     }
     std::cout << "id: " << id << std::endl;
-    pthread_mutex_unlock(&mutex);
     return id;
   }
 
@@ -131,7 +129,6 @@ public:
   void parallel()
   {
     clock_t start = clock();
-    pthread_mutex_init(&mutex, NULL);
     /* ---- multi ---- */
     for(int t=0; t<T; t++){
       for(int i=0; i<MAX_THREAD_NUM; i++)
@@ -152,7 +149,6 @@ public:
     }
 
     clock_t end = clock();
-    pthread_mutex_destroy(&mutex);
     cal_time[time_count] = end - start;
     this->time_count++;
   }

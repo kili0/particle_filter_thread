@@ -230,4 +230,6 @@ int main(int argc, char *argv[])
   std::cout << "calculation time: "
             << result_time
             << std::endl;
+  
+  return 0;
 }

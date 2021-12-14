@@ -113,7 +113,7 @@ public:
   {
     int width, istart, iend;
     // std::cout << "tid: " << id << std::endl;
-    width = n_particle / thread_num;
+    // width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
     // std::cout << "start: " << istart << std::endl;
@@ -152,7 +152,6 @@ public:
         data->t =t;
         data->tid = i;
         pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)data);
-        //free(data);
       }
       for(int i=0; i<thread_num; i++)
       {
@@ -233,7 +232,7 @@ int main(int argc, char *argv[])
   int n_particle = pow(10, atoi(argv[1]));
   int max_thread_num = atoi(argv[2]);
 
-  std::cout << "n_particle: " << n_particle << std::endl;
+  std::cout << "n_particle: " << n_particle << "  /  ";
   std::cout << "max_thread_num: " << max_thread_num << std::endl;
 
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
@@ -242,10 +241,10 @@ int main(int argc, char *argv[])
   // pf.printVectorX();
   // pf.printVectorW();
 
-  double result_time = pf.getCalTime();
-  std::cout << "calculation time: "
-            << result_time
-            << std::endl;
+  // double result_time = pf.getCalTime();
+  // std::cout << "calculation time: "
+  //           << result_time
+  //           << std::endl;
 
   return 0;
 }

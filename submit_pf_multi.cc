@@ -36,6 +36,7 @@ private:
   int t_id;
   vector<pthread_t> tid;
   int thread_num;
+  int width;
   // pthread_mutex_t mutex;
 
 public:
@@ -75,6 +76,7 @@ public:
     this->cal_time = cal_time;
     this->t_id = 0;
     this->tid = tid;
+    this->width = n_particle / thread_num;
   }
 
   double norm_likelihood(double y, double x, double s2)
@@ -109,16 +111,12 @@ public:
 
   void task(int t, int id)
   {
-    std::cout << "task" << std::endl;
     int width, istart, iend;
-    // id = count_tid();
-    // std::cout << "n_particle: " << n_particle << std::endl;
-    // std::cout << "alpha_2: " << alpha_2 << std::endl;
+    std::cout << "tid: " << id << std::endl;
     width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
     std::cout << "start: " << istart << std::endl;
-    std::cout << "width: " << width << std::endl;
     double v;
 
     for(int i=istart; i<iend; i++)
@@ -149,11 +147,12 @@ public:
     for(int t=0; t<T; t++){
       for(int i=0; i<thread_num; i++)
       {
-        DATA data;
-        data.ptr = this;
-        data.t =t;
-        data.tid = i;
-        pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)&data);
+        DATA *data = (DATA*)malloc(sizeof(DATA));
+        data->ptr = this;
+        data->t =t;
+        data->tid = i;
+        pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)data);
+        //free(data);
       }
       for(int i=0; i<thread_num; i++)
       {
@@ -236,7 +235,6 @@ int main(int argc, char *argv[])
 
   std::cout << "n_particle: " << n_particle << std::endl;
   std::cout << "max_thread_num: " << max_thread_num << std::endl;
-  std::cout << "alpha_2: " << alpha_2 << std::endl;
 
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
   pf.parallel();

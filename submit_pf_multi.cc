@@ -32,7 +32,6 @@ private:
   vector< vector<double> > w;
   vector< vector<double> > w_normed;
   vector<double> l;
-  int time_count;
   vector<double> cal_time;
   int t_id;
   vector<pthread_t> tid;
@@ -158,7 +157,7 @@ public:
 
     clock_t end = clock();
     cal_time[time_count] = end - start;
-    this->time_count++;
+    time_count++;
   }
 
   double getCalTime()

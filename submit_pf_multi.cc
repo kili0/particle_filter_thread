@@ -101,14 +101,18 @@ public:
     return id;
   }
 
-  void task(void* ts)
+  typedef struct data {
+    ParticleFilter *ptr;
+    int t;
+  } DATA;
+
+  void task(int t)
   {
     std::cout << "task" << std::endl;
     int width, istart, iend, id;
     id = count_tid();
-    int *t = (int*)ts;
-    std::cout << "n_particle: " << n_particle << std::endl;
-    std::cout << "alpha_2: " << alpha_2 << std::endl;
+    // std::cout << "n_particle: " << n_particle << std::endl;
+    // std::cout << "alpha_2: " << alpha_2 << std::endl;
     width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
@@ -120,15 +124,18 @@ public:
     {
       normal_distribution<> dist2(0.0, sqrt(alpha_2*sigma_2));
       v = dist2(engine);
-      this->x[(*t)+1][i] = x_resampled[*t][i] + v;
-      this->w[*t][i] = norm_likelihood(y[*t], x[(*t)+1][i], sigma_2);
+      this->x[t+1][i] = x_resampled[t][i] + v;
+      this->w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     }
     pthread_exit(NULL);
   }
 
   static void* task_to_thread(void* t)
   {
-    static_cast<ParticleFilter*>(t)->task(t);
+    DATA* pair = static_cast<DATA*>(t);
+    ParticleFilter* ptr = pair->ptr;
+    int id = pair->t;
+    ptr->task(id);
     return NULL;
   }
 
@@ -140,7 +147,10 @@ public:
     for(int t=0; t<T; t++){
       for(int i=0; i<thread_num; i++)
       {
-        pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)&t);
+        DATA data;
+        data.ptr = this;
+        data.t =t;
+        pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)&data);
       }
       for(int i=0; i<thread_num; i++)
       {

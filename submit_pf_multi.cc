@@ -104,13 +104,14 @@ public:
   typedef struct data {
     ParticleFilter *ptr;
     int t;
+    int tid;
   } DATA;
 
-  void task(int t)
+  void task(int t, int id)
   {
     std::cout << "task" << std::endl;
-    int width, istart, iend, id;
-    id = count_tid();
+    int width, istart, iend;
+    // id = count_tid();
     // std::cout << "n_particle: " << n_particle << std::endl;
     // std::cout << "alpha_2: " << alpha_2 << std::endl;
     width = n_particle / thread_num;
@@ -135,7 +136,8 @@ public:
     DATA* pair = static_cast<DATA*>(t);
     ParticleFilter* ptr = pair->ptr;
     int id = pair->t;
-    ptr->task(id);
+    int tid = pair->tid;
+    ptr->task(id, tid);
     return NULL;
   }
 
@@ -150,6 +152,7 @@ public:
         DATA data;
         data.ptr = this;
         data.t =t;
+        data.tid = i;
         pthread_create(&tid[i], NULL, ParticleFilter::task_to_thread, (void*)&data);
       }
       for(int i=0; i<thread_num; i++)
@@ -238,8 +241,8 @@ int main(int argc, char *argv[])
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
   pf.parallel();
 
-  pf.printVectorX();
-  pf.printVectorW();
+  // pf.printVectorX();
+  // pf.printVectorW();
 
   double result_time = pf.getCalTime();
   std::cout << "calculation time: "

@@ -15,7 +15,7 @@ using namespace std;
 
 double sigma_2 = pow(2, a);
 double alpha_2 = pow(10, b);
-int time_count = 0;
+// int time_count = 0;
 
 random_device seed_gen;
 default_random_engine engine(seed_gen());
@@ -32,12 +32,11 @@ private:
   vector< vector<double> > w;
   vector< vector<double> > w_normed;
   vector<double> l;
-  vector<double> cal_time;
+  // vector<double> cal_time;
   int t_id;
   vector<pthread_t> tid;
   int thread_num;
   int width;
-  // pthread_mutex_t mutex;
 
 public:
   ParticleFilter(int np, double s2, double a2, int tnum)
@@ -86,23 +85,6 @@ public:
     return result;
   }
 
-  int count_tid()
-  {
-    int id;
-    if(t_id < thread_num)
-    {
-      id = this->t_id;
-      this->t_id += 1;
-    }
-    else
-    {
-      this->t_id = 0;
-      id = 0;
-    }
-    std::cout << "id: " << id << std::endl;
-    return id;
-  }
-
   typedef struct data {
     ParticleFilter *ptr;
     int t;
@@ -112,11 +94,8 @@ public:
   void task(int t, int id)
   {
     int width, istart, iend;
-    // std::cout << "tid: " << id << std::endl;
-    // width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
-    // std::cout << "start: " << istart << std::endl;
     double v;
 
     for(int i=istart; i<iend; i++)
@@ -141,7 +120,7 @@ public:
 
   void parallel()
   {
-    clock_t start = clock();
+    // clock_t start = clock();
 
     /* ---- multi ---- */
     for(int t=0; t<T; t++){
@@ -166,19 +145,20 @@ public:
       this->l[t] = log(wt_sum);
     }
 
-    clock_t end = clock();
-    cal_time[time_count] = end - start;
-    time_count++;
+    // clock_t end = clock();
+    // cal_time[time_count] = end - start;
+    // time_count++;
   }
 
+/*
   double getCalTime()
   {
     double sum, result;
     sum = accumulate(cal_time.begin(), cal_time.end(), 0.0);
     result = sum / CLOCKS_PER_SEC;
-    // result = cal_time[0] / CLOCKS_PER_SEC;
     return result;
   }
+*/
 
   void printVectorX()
   {

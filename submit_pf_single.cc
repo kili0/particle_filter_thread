@@ -15,7 +15,7 @@ using namespace std;
 
 double sigma_2 = pow(2, a);
 double alpha_2 = pow(10, b);
-int time_count = 0;
+// int time_count = 0;
 
 random_device seed_gen;
 default_random_engine engine(seed_gen());
@@ -32,8 +32,7 @@ private:
   vector< vector<double> > w;
   vector< vector<double> > w_normed;
   vector<double> l;
-  int time_count;
-  vector<double> cal_time;
+  // vector<double> cal_time;
 
 public:
   ParticleFilter(int np, double s2, double a2)
@@ -68,7 +67,7 @@ public:
     this->w = w;
     this->w_normed = w_normed;
     this->l = l;
-    this->cal_time = cal_time;
+    // this->cal_time = cal_time;
   }
 
   double norm_likelihood(double y, double x, double s2)
@@ -90,7 +89,7 @@ public:
 
   void parallel()
   {
-    clock_t start = clock();
+    // clock_t start = clock();
 
     /* ---- single ---- */
     for(int t=0; t<T; t++)
@@ -107,19 +106,19 @@ public:
       }
       this->l[t] = log(wt_sum);
     }
-
-    clock_t end = clock();
-    cal_time[time_count] = end - start;
-    time_count++;
+    // clock_t end = clock();
+    // cal_time[time_count] = end - start;
+    // time_count++;
   }
 
+/*
   double getCalTime()
   {
     double result;
-    // result = accumulate(cal_time.begin(), cal_time.end(), 0.0);
     result = cal_time[0] / CLOCKS_PER_SEC;
     return result;
   }
+*/
 
   void printVectorX()
   {
@@ -179,7 +178,7 @@ int main(int argc, char *argv[])
   ParticleFilter pf(n_particle, sigma_2, alpha_2);
   pf.parallel();
 
-  double result_time = pf.getCalTime();
+  // double result_time = pf.getCalTime();
 
   // pf.printVectorX();
   // pf.printVectorW();
@@ -187,6 +186,6 @@ int main(int argc, char *argv[])
   // std::cout << "calculation time: "
   //          << result_time
   //          << std::endl;
-  
+
   return 0;
 }

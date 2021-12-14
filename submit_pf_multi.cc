@@ -112,11 +112,11 @@ public:
   void task(int t, int id)
   {
     int width, istart, iend;
-    std::cout << "tid: " << id << std::endl;
+    // std::cout << "tid: " << id << std::endl;
     width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
-    std::cout << "start: " << istart << std::endl;
+    // std::cout << "start: " << istart << std::endl;
     double v;
 
     for(int i=istart; i<iend; i++)

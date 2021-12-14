@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
   int n_particle = pow(10, atoi(argv[1]));
   int max_thread_num = atoi(argv[2]);
 
-  std::cout << "n_particle: " << n_particle << std::endl;
+  std::cout << "n_particle: " << n_particle << "  /  ";
   std::cout << "max_thread_num: " << max_thread_num << std::endl;
 
   ParticleFilter pf(n_particle, sigma_2, alpha_2);
@@ -181,12 +181,12 @@ int main(int argc, char *argv[])
 
   double result_time = pf.getCalTime();
 
-  pf.printVectorX();
-  pf.printVectorW();
+  // pf.printVectorX();
+  // pf.printVectorW();
 
-  std::cout << "calculation time: "
-            //<< std::accumulate(cal_time.begin(), cal_time.end(), 0.0)
-            << result_time
-            << std::endl;
-
+  // std::cout << "calculation time: "
+  //          << result_time
+  //          << std::endl;
+  
+  return 0;
 }

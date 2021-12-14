@@ -104,12 +104,17 @@ public:
 
   void task(void* ts)
   {
+    std::cout << "task" << std::endl;
     int width, istart, iend, id;
     id = count_tid();
     int *t = (int*)ts;
+    std::cout << "n_particle: " << n_particle << std::endl;
+    std::cout << "alpha_2: " << alpha_2 << std::endl;
     width = n_particle / thread_num;
     istart = id * width;
     iend = istart + width;
+    std::cout << "start: " << istart << std::endl;
+    std::cout << "width: " << width << std::endl;
     double v;
 
     for(int i=istart; i<iend; i++)
@@ -219,6 +224,7 @@ int main(int argc, char *argv[])
 
   std::cout << "n_particle: " << n_particle << std::endl;
   std::cout << "max_thread_num: " << max_thread_num << std::endl;
+  std::cout << "alpha_2: " << alpha_2 << std::endl;
 
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
   pf.parallel();
@@ -230,6 +236,6 @@ int main(int argc, char *argv[])
   std::cout << "calculation time: "
             << result_time
             << std::endl;
-  
+
   return 0;
 }

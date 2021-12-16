@@ -72,7 +72,7 @@ public:
     this->w = w;
     this->w_normed = w_normed;
     this->l = l;
-    this->cal_time = cal_time;
+    // this->cal_time = cal_time;
     this->t_id = 0;
     this->tid = tid;
     this->width = n_particle / thread_num;
@@ -93,7 +93,8 @@ public:
 
   void task(int t, int id)
   {
-    int width, istart, iend;
+    int width = this-> width;
+    int istart, iend;
     istart = id * width;
     iend = istart + width;
     double v;

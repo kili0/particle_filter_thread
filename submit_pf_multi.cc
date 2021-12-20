@@ -93,10 +93,12 @@ public:
 
   void task(int t, int id)
   {
-    int width = this-> width;
+    // printf("thread %d start \n" ,id);
+    int width = this->width;
+    // printf("thread %d / width: %d \n" ,id, width);
     int istart, iend;
     istart = id * width;
-    iend = istart + width;
+    iend = istart + width - 1;
     double v;
 
     for(int i=istart; i<iend; i++)
@@ -106,6 +108,7 @@ public:
       this->x[t+1][i] = x_resampled[t][i] + v;
       this->w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     }
+    // printf("thread %d end \n" ,id);
     pthread_exit(NULL);
   }
 

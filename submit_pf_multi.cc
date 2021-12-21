@@ -93,9 +93,9 @@ public:
 
   void task(int t, int id)
   {
-    // printf("thread %d start \n" ,id);
+    printf("thread %d start \n" ,id);
+    double ps = (double) clock();
     int width = this->width;
-    // printf("thread %d / width: %d \n" ,id, width);
     int istart, iend;
     istart = id * width;
     iend = istart + width - 1;
@@ -108,7 +108,9 @@ public:
       this->x[t+1][i] = x_resampled[t][i] + v;
       this->w[t][i] = norm_likelihood(y[t], x[t+1][i], sigma_2);
     }
-    // printf("thread %d end \n" ,id);
+    double pe = (double) clock();
+    double pt = (pe - ps) / CLOCKS_PER_SEC;
+    printf("thread %d end / time: %.3f sec.\n" ,id, pt);
     pthread_exit(NULL);
   }
 
@@ -124,8 +126,6 @@ public:
 
   void parallel()
   {
-    // clock_t start = clock();
-
     /* ---- multi ---- */
     for(int t=0; t<T; t++){
       for(int i=0; i<thread_num; i++)
@@ -148,10 +148,6 @@ public:
       }
       this->l[t] = log(wt_sum);
     }
-
-    // clock_t end = clock();
-    // cal_time[time_count] = end - start;
-    // time_count++;
   }
 
 /*
@@ -218,17 +214,15 @@ int main(int argc, char *argv[])
 
   std::cout << "n_particle: " << n_particle << "  /  ";
   std::cout << "max_thread_num: " << max_thread_num << std::endl;
-
+  double st = (double) clock();
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
+  double end = (double) clock();
+  double t = (end - st) / CLOCKS_PER_SEC;
+  printf("init time: %.3f \n", t);
   pf.parallel();
 
   // pf.printVectorX();
   // pf.printVectorW();
-
-  // double result_time = pf.getCalTime();
-  // std::cout << "calculation time: "
-  //           << result_time
-  //           << std::endl;
 
   return 0;
 }

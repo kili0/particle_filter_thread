@@ -110,7 +110,8 @@ public:
     }
     double pe = (double) clock();
     double pt = (pe - ps) / CLOCKS_PER_SEC;
-    printf("thread %d end / time: %.3f sec.\n" ,id, pt);
+    printf("thread %d end" ,id);
+    printf(" / time: %.3f sec.\n", pt/this->thread_num);
     pthread_exit(NULL);
   }
 
@@ -218,7 +219,7 @@ int main(int argc, char *argv[])
   ParticleFilter pf(n_particle, sigma_2, alpha_2, max_thread_num);
   double end = (double) clock();
   double t = (end - st) / CLOCKS_PER_SEC;
-  printf("init time: %.3f \n", t);
+  printf("init time: %.3f sec.\n", t);
   pf.parallel();
 
   // pf.printVectorX();
